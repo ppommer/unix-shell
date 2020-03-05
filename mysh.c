@@ -14,21 +14,21 @@
 #include "wildcard.h"
 #include "io.h"
 
-// fake directory name to idetify internal commands
+// fake directory name to identify internal commands
 char internalPrefixFormat[] = "/>%06d#internal</";
 
-// The resulting string whith length:
+// resulting string whith length:
 // snprintf(NULL, 0, internalPrefixFormat, 0) + 1
 char internalPrefix[20];
 
-// Current working directory as string
+// current working directory as string
 char *pwd;
 
-// Thread list (they aren't actual threads so I don't remember why i called it that)
+// thread list
 list_t *tL;
-// Pipe descriptor list (again, I don't remember why it's cL)
+// pipe descriptor list
 list_t *cL;
-// List of parameters given to the shell
+// list of parameters given to the shell
 list_t *paras;
 
 // parser.c function declarations
@@ -39,12 +39,12 @@ extern int myParseStg2(list_t *args, char **outFileP, char **inFileP);
 extern int myParsePipe(list_t *args, list_t *args2, int pipeA[]);
 // END
 
-// Compares two pointers like ints.
+// compare two pointers like ints
 int intPcmp(const void *intP1, const void *intP2) {
     return (*(int *) intP1) - (*(int *) intP2);
 }
 
-// Frees 'all' allocated memory and exits.
+// free allocated memory and exit
 void cleanExit(int status) {
     list_finit(tL);
     list_finit(cL);
@@ -53,11 +53,9 @@ void cleanExit(int status) {
     exit(status);
 }
 
-// Change the current working directory by the given list of parameters
+// change the current working directory by the given list of parameters
 // e.g. list ["cd"] -> ["a/dir/to/go"]
-// the first element of the list should always be the string "cd".
-// It can be something else but it does get ignored none the less.
-// Always returns 0
+// the first element of the list should always be the string "cd"
 int changeDir(list_t *cmdList) {
     int argc = list_length(cmdList);
     // no arguments given
@@ -69,12 +67,12 @@ int changeDir(list_t *cmdList) {
         // the new dir string is the second argument
         char *dir = (char *) cmdList->first->next->data;
 
-        // the new working dir is: pwd + "/" + dir. So the length must be strlen(pwd) + 1 + strlen(dir) + 1 (null term)
+        // the new working dir is: pwd + "/" + dir
+	// the length must be strlen(pwd) + 1 + strlen(dir) + 1 (null term)
         char newPwd[strlen(pwd) + strlen(dir) + 2];
         sprintf(newPwd, "%s/%s", pwd, dir);
 
         // get the real path of the new wd (/path/.././path/.. -> /) in other words deuglify it
-        // but because
         char realNewPwd[4096];
         realpath(newPwd, realNewPwd);
         //printf("RealNewPwd: %s\n", realNewPwd);
@@ -96,26 +94,16 @@ int changeDir(list_t *cmdList) {
             // Error: file or directory not found
             printf("cd: %s: %s\n", dir, strerror(ENOENT));
         }
-        // we don't have to free anything because we only declared arrays :)
+        // nothing has to be freed as only arrays were declared
     } // too many arguments or list is empty
     else {
-        // Print usage
+        // print usage
         printf("Usage: cd <dir>\n");
     }
     return 0;
 }
 
 int execCmd(const char *filename, char *const argv[], char *const envp[]) {
-    // I actually wanted to delegate the internal process execution to this method but this method gets called after
-    // fork() so we can't change anything in the actual shell process
-    // TODO: Cleanup
-    /*
-    if (strncmp(filename, internalPrefix, strlen(internalPrefix)) == 0) {
-        if (strncmp(filename + strlen(internalPrefix), "/cd", 3) == 0) {
-            return changeDir(argv, envp);
-        }
-    }
-    */
     return execve(filename, argv, envp);
 }
 
@@ -123,7 +111,6 @@ int execCmd(const char *filename, char *const argv[], char *const envp[]) {
 int processCmd(list_t *tL, list_t *cmdList, char *envp[], int inPipe, list_t *cL) {
 
     // check if cd is called
-    // maybe delegate this check to another function like 'processInternalCmd'
     if (list_length(cmdList) > 0 && strncmp((char *) cmdList->first->data, "cd", 2) == 0) {
         return changeDir(cmdList);
     }
@@ -182,16 +169,16 @@ int processCmd(list_t *tL, list_t *cmdList, char *envp[], int inPipe, list_t *cL
         sprintf(string, "%s:%s", internalPrefix, path);
         */
 
-        // if we can pipe our output
+        // pipe output if possible
         if (pipeA2[1] > 0) {
-            dup2(pipeA2[1], STDOUT_FILENO);    // do it
+            dup2(pipeA2[1], STDOUT_FILENO);
         }
-        // if we can get our input from a pipe
+        // get input from pipe if possible
         if (inPipe > 0) {
-            dup2(inPipe, STDIN_FILENO);    // do it
+            dup2(inPipe, STDIN_FILENO);
         }
 
-        // we don't need any pipe fd anymore, because we already dup'd them. So close them all
+        // close all pipe fds
         while (cL->first != NULL) {
             struct list_elem *cC = cL->first;
             close(*((int *) cC->data));
@@ -201,21 +188,21 @@ int processCmd(list_t *tL, list_t *cmdList, char *envp[], int inPipe, list_t *cL
 
         int fd = -1;
 
-        // if we can output to a file
+        // output to file if possible
         if (*outFileP != NULL && (fd = open(*outFileP, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) >= 0) {
-            dup2(fd, STDOUT_FILENO);    // do it
+            dup2(fd, STDOUT_FILENO);
             close(fd);
         }
-        // if we can get input from a file
+        // get input from file if possible
         if (*inFileP != NULL && (fd = open(*inFileP, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) >= 0) {
-            dup2(fd, STDIN_FILENO);    // do it
+            dup2(fd, STDIN_FILENO);
             close(fd);
         }
 
-        // if the command contains a slash -> execute as is
+        // exec the command as it is if it contains a slash
         if (strchr(argv[0], '/') != NULL) {
             execCmd(argv[0], argv, envp);
-        } // if not -> search for executable in PATH
+        } // if not, search for executable in PATH
         else {
 
             //try every PATH entry
@@ -227,7 +214,6 @@ int processCmd(list_t *tL, list_t *cmdList, char *envp[], int inPipe, list_t *cL
 
                 execCmd(cmd, argv, envp);
 
-                // naechsten Abschnitt erstellen
                 ptr = strtok(NULL, delimiter);
             }
 
@@ -236,7 +222,7 @@ int processCmd(list_t *tL, list_t *cmdList, char *envp[], int inPipe, list_t *cL
             cleanExit(-1);
         }
     } else {
-        // add the child command process to the 'tread' list (maybe it's task list)
+        // add the child command process to the task list
         int *cpidP = malloc(sizeof(int));
         *cpidP = cpid;
         list_append(tL, cpidP);
@@ -247,9 +233,6 @@ int processCmd(list_t *tL, list_t *cmdList, char *envp[], int inPipe, list_t *cL
 
 int main(int argc, char *argv[], char *envp[]) {
 
-    // generate the internalPrefix
-    // obsolete
-    // TODO: remove, cleanup
     srand(time(NULL));
     sprintf(internalPrefix, internalPrefixFormat, rand() % 900000 + 100000);
 
@@ -263,7 +246,7 @@ int main(int argc, char *argv[], char *envp[]) {
     // set the current working dir of our shell (pwd) to the current working dir of the process
     pwd = calloc(4096, sizeof(char));
     if (getcwd(pwd, 4096) == NULL) {
-        // if not found, just asume we're in th root dir
+        // if not found, assume root dir
         sprintf(pwd, "/");
     }
 
@@ -271,7 +254,6 @@ int main(int argc, char *argv[], char *envp[]) {
     io_open();
 
     printf("%s $ ", pwd);
-    // because we didn't print a new line the our printf might not have been actually printed
     fflush(stdout);
     while (io_fgets(str, 4096, stdin) != NULL) {
         // if the command is "exit" -> exit the shell

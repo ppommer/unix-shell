@@ -143,7 +143,7 @@ void expandWildcards(list_t *paras) {
                         // yes it does -> good to go (be added to the params list)
                         list_insert_after(paras, curr, tempStr);
                     } else {
-                        // meehh -> discard
+                        // discard
                         free(tempStr);
                     }
 
@@ -162,3 +162,4 @@ void expandWildcards(list_t *paras) {
         }
     }
 }
+

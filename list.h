@@ -3,15 +3,15 @@
 
 
 struct list_elem {
-    struct list_elem *next;  // Zeiger auf das naechste Element
-    void *data;              // Zeiger auf ein Datenobject
+    struct list_elem *next;
+    void *data;
 };
 typedef struct list_elem list_elem;
 
 typedef struct list {
     unsigned int count;
-    struct list_elem *first;  // erstes Element in der Liste
-    struct list_elem *last;   // letztes Element in der Liste
+    struct list_elem *first;
+    struct list_elem *last;
 } list_t;
 
 /* function prototypes */

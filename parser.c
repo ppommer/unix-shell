@@ -18,7 +18,7 @@
 #endif
 
 
-// This function takes the list of chars at buffer and appends them as a string to the list at params
+// take the list of chars at buffer and append them as a string to the list at params
 void addParam(list_t *params, list_t *buffer) {
     if (list_length(buffer) > 0) {
         list_append(params, list_toString(buffer));
@@ -27,7 +27,7 @@ void addParam(list_t *params, list_t *buffer) {
 }
 
 /*
- * This function takes the name of the env var at varBuffer (stored as list of chars)
+ * take the name of the env var at varBuffer (stored as list of chars)
  * and add the value of this env var value char by char to the list buffer
  */
 void addVar(list_t *buffer, list_t *varBuffer) {
@@ -51,12 +51,10 @@ void addVar(list_t *buffer, list_t *varBuffer) {
 
 }
 
-// parse the command provided by str and stores every parameter as a own string in the list at res
+// parse the command provided by str and store every parameter as separate string in the list at res
 list_t *myParse(list_t *res, char *str, char *envp[]) {
 
     //list_t *res = list_init();
-    // Maybe don't do this so that we can have strings already in res.
-    // the paras only get appended sooo... it's not really necessary (I think)
     list_removeAll(res);
     //printf("myParse res: %p", res);
 
@@ -65,7 +63,7 @@ list_t *myParse(list_t *res, char *str, char *envp[]) {
     // list of chars that form a var name
     list_t *varBuf = list_init();
 
-    // stores the last enclosing char so we know if the current chars are in enclosed
+    // stores the last enclosing char
     char encChar = 0;
     // if the current chars are part of a var name
     bool isVar = false;
@@ -81,7 +79,7 @@ list_t *myParse(list_t *res, char *str, char *envp[]) {
             break;
         }
 
-        // New pointer to the current char so we can store it in lists
+        // new pointer to current char (can be stored in lists)
         cP = malloc(sizeof(char));
         *cP = c;
         //printf("c: %c\n", *cP);
@@ -102,7 +100,7 @@ list_t *myParse(list_t *res, char *str, char *envp[]) {
 
         // if currently escaped
         if (isEscaped) {
-            // append the current char as is without processing it
+            // append the current char as it is without processing it
             list_append(buf, cP);
             isEscaped = false;
         } // if currently enclosed
@@ -176,11 +174,11 @@ list_t *myParse(list_t *res, char *str, char *envp[]) {
 }
 
 /*
- * Gets Input-/Output- redirects and stores the filenames in the Pointers
- * Pointers are NULL if no redirect was found or if an error occured
- * Returns -1 if error occured, 0b01 if Out-red was found, 0b10 if In-red was found,
+ * gets I/O redirects and stores the filenames in the pointers
+ * pointers are NULL if no redirect was found or if an error occured
+ * returns -1 if error occured, 0b01 if out-red was found, 0b10 if in-red was found,
  * and 0b11 if both redirects were found
- * removes '>', '<' and there argumments from the args list
+ * removes '>', '<' and the arguments from the args list
  */
 int myParseStg2(list_t *args, char **outFileP, char **inFileP) {
     // init
@@ -245,8 +243,6 @@ int myParseStg2(list_t *args, char **outFileP, char **inFileP) {
             }
         }
 
-        // TODO: Maybe rewrite deleting, not very nice style, just use a while loop
-        // while we have to delete something
         while (delCurrCount > 0) {
             // backup curr
             struct list_elem *currT = curr;
@@ -269,7 +265,7 @@ int myParseStg2(list_t *args, char **outFileP, char **inFileP) {
 
 /*
  * takes the list of arguments in args and splits it by the first pipe-char it finds.
- * The elements after the pipe get moved to args2 and return a new pipe
+ * the elements after the pipe get moved to args2 and return a new pipe
  * returns -1 on error, -2 if no pipe was found, pipe() return val on success
  */
 int myParsePipe(list_t *args, list_t *args2, int pipeA[]) {
@@ -293,27 +289,6 @@ int myParsePipe(list_t *args, list_t *args2, int pipeA[]) {
     // clear args2
     list_removeAll(args2);
 
-    /*
-     * -> access is shorted by . (yes it's technically wrong but looks better ^^)
-     *    ["ls"]       -> ["."] -> ["|"] -> ["rev"]
-     *      /\             /\       /\        /\
-     *   args.first       prev     curr    args.last
-     *
-     *                       ;;;;;
-     *                       ;;;;;
-     *                     ..;;;;;..
-     *                      ':::::'
-     *                        ':`
-     *  --------------------------    ----------------------------
-     *  |          args          |    |              args2       |
-     *
-     *    ["ls"]       -> ["."]                  ["rev"]
-     *      /\             /\                      /\
-     * [args.first]       prev          curr.next-/  \-args.last
-     * [   ||     ]        ||               ||             ||
-     * [args.first]     args.last      args2.first    args2.last
-     */
-
     args2->last = args->last;
     args2->first = curr->next;
     args->last = prev;
@@ -321,10 +296,10 @@ int myParsePipe(list_t *args, list_t *args2, int pipeA[]) {
     // delete the element containing the pipe char
     prev->next = NULL;
 
-
     // we manually changed the list so we the count values are all wrong
     list_updateCount(args);
     list_updateCount(args2);
 
     return pipe(pipeA);
 }
+
